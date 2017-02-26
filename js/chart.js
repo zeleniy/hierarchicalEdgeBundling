@@ -70,11 +70,9 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
 
     this._update();
 
-    d3.json('data/readme-flare-imports.json', function(error, classes) {
+    d3.csv('data/data.csv', function(error, data) {
 
-        var hierarchy = self._getNodes(classes);
-        //console.log(JSON.stringify(hierarchy))
-        var nodesData = self._cluster.nodes(hierarchy);
+        var nodesData = self._cluster.nodes(self._getNodes(data));
         var linksData = self._getLinks(nodesData);
 
         self._links = self._canvas.append('g')
@@ -113,85 +111,90 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
 
 HierarchicalEdgeBundling.prototype._mouseOverEventHandler = function(d) {
 
-//    this._nodes.each(function(n) {
-//        n.target = n.source = false;
-//    });
-//
-//    this._links.classed('link-target', function(l) {
-//            if (l.target === d) return l.source.source = true; 
-//        }).classed('link-source', function(l) {
-//            if (l.source === d) return l.target.target = true;
-//        }).filter(function(l) {
-//            return l.target === d || l.source === d;
-//        }).each(function() {
-//            this.parentNode.appendChild(this);
-//        });
-//
-//  this._nodes.classed('node-target', function(n) {
-//          return n.target;
-//      }).classed('node-source', function(n) {
-//          return n.source;
-//      });
-};
-
-
-HierarchicalEdgeBundling.prototype._mouseEnterEventHandler = function(classes) {
-
-//  this._links
-//      .classed('link-target', false)
-//      .classed('link-source', false);
-//
-//  this._nodes
-//      .classed('node-target', false)
-//      .classed('node-source', false);
-};
-
-
-HierarchicalEdgeBundling.prototype._getNodes = function(classes) {
-
-    var map = {};
-
-    function find(name, data) {
-
-        var node = map[name], i;
-
-        if (! node) {
-            node = map[name] = data || {name: name, children: []};
-            if (name.length) {
-                node.parent = find(name.substring(0, i = name.lastIndexOf('.')));
-                node.parent.children.push(node);
-                node.key = name.substring(i + 1);
-            }
-        }
-
-        return node;
-    }
-
-    classes.forEach(function(d) {
-        find(d.name, d);
+    this._nodes.each(function(n) {
+        n.target = n.source = false;
     });
 
-    return map[''];
+    this._links.classed('link-target', function(l) {
+            if (l.target === d) return l.source.source = true; 
+        }).classed('link-source', function(l) {
+            if (l.source === d) return l.target.target = true;
+        }).filter(function(l) {
+            return l.target === d || l.source === d;
+        }).each(function() {
+            this.parentNode.appendChild(this);
+        });
+
+  this._nodes.classed('node-target', function(n) {
+          return n.target;
+      }).classed('node-source', function(n) {
+          return n.source;
+      });
+};
+
+
+HierarchicalEdgeBundling.prototype._mouseEnterEventHandler = function() {
+
+  this._links
+      .classed('link-target', false)
+      .classed('link-source', false);
+
+  this._nodes
+      .classed('node-target', false)
+      .classed('node-source', false);
+};
+
+
+HierarchicalEdgeBundling.prototype._getNodes = function(nodes) {
+
+    var root = {};
+    var map  = {};
+
+    root.children = _.uniqBy(nodes, function(d) {
+            return d['Page.Type']
+        }).map(function(d) {
+            return map[d['Page.Type']] = {
+                key: d['Page.Type'],
+                parent: root,
+                children: []
+            }
+        });
+
+    this._nodesMap  = {};
+    nodes.forEach(function(d, i) {
+        var parent = map[d['Page.Type']];
+
+        d.parent = parent;
+        d.children = [];
+        d.key = d['Page.Name'];
+
+        this._nodesMap[d['Page.ID']] = d;
+
+        parent.children.push(d);
+    }, this);
+
+    return root;
 };
 
 
 HierarchicalEdgeBundling.prototype._getLinks = function(nodes) {
 
-      var map = {},
-      imports = [];
+    var links = [];
 
-  // Compute a map from name to node.
-  nodes.forEach(function(d) {
-    map[d.name] = d;
-  });
-
-  // For each import, construct a link from the source to target node.
-  nodes.forEach(function(d) {
-    if (d.imports) d.imports.forEach(function(i) {
-      imports.push({source: map[d.name], target: map[i]});
+    var leafs = nodes.filter(function(d) {
+        return d.depth === 2;
     });
-  });
 
-  return imports;
+    leafs.forEach(function(d, i) {
+        for (var key in d) {
+            if (key.substr(0, 4) == 'Link' && d[key] && d[key]) {
+                links.push({
+                    source: d,
+                    target: this._nodesMap[Number(d[key])]
+                });
+            }
+        }
+    }, this);
 
+    return links;
 };
