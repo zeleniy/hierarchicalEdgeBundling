@@ -19,8 +19,11 @@
         </div>
     </div>
     <script>
-    HierarchicalEdgeBundling.getInstance()
-        .renderTo('#chart')
+    HierarchicalEdgeBundling.getInstance({
+        'innerRadiusDiff' : 180,
+        'arcLabelsPadding' : 5,
+        'arcWidth' : 30,
+    }).renderTo('#chart')
     </script>
 </body>
 </html>

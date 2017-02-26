@@ -1,6 +1,10 @@
-function HierarchicalEdgeBundling() {
+function HierarchicalEdgeBundling(config) {
 
-    this._arcLabelsPadding = 5;
+    this._config = config || {};
+
+    this._arcLabelsPadding = this._config.arcLabelsPadding || 5;
+    this._innerRadiusDiff = this._config.innerRadiusDiff || 120;
+    this._arcWidth = this._config.arcWidth || 30;
 
     this._color = d3.scale.category20().range();
 
@@ -27,9 +31,9 @@ function HierarchicalEdgeBundling() {
 }
 
 
-HierarchicalEdgeBundling.getInstance = function() {
+HierarchicalEdgeBundling.getInstance = function(config) {
 
-    return new HierarchicalEdgeBundling();
+    return new HierarchicalEdgeBundling(config);
 };
 
 
@@ -42,7 +46,7 @@ HierarchicalEdgeBundling.prototype._resize = function(dimension) {
 
     this._diameter = Math.min(this._width, this._height);
     this._outerRadius = this._diameter / 2,
-    this._innerRadius = this._outerRadius - 120;
+    this._innerRadius = this._outerRadius - this._innerRadiusDiff;
 
     this._cluster
         .size([360, this._innerRadius]);
@@ -50,6 +54,18 @@ HierarchicalEdgeBundling.prototype._resize = function(dimension) {
     this._arc
         .innerRadius(this._innerRadius)
         .outerRadius(this._outerRadius);
+};
+
+
+HierarchicalEdgeBundling.prototype._getArcInnerRadius = function() {
+
+    return this._innerRadius + 5;
+};
+
+
+HierarchicalEdgeBundling.prototype._getArcOuterRadius = function() {
+
+    return this._innerRadius + this._arcWidth + 5;
 };
 
 
@@ -74,15 +90,17 @@ HierarchicalEdgeBundling.prototype._update = function(selector) {
     this._nodes
         .data(nodesData.filter(function(n) {
             return ! n.children;
-        })).attr('transform', function(d) {
-            return 'rotate(' + (d.x - 90) + ')translate(' + (d.y + 8) + ',0)' + (d.x < 180 ? '' : 'rotate(180)');
+        })).attr('dx', function(d) {
+            return d.x < 180 ? self._arcWidth + 'px' : '-' + self._arcWidth + 'px';
+        }).attr('transform', function(d) {
+            return 'rotate(' + (d.x - 90) + ') translate(' + (d.y + 8) + ',0)' + (d.x < 180 ? '' : ' rotate(180)');
         });
 
     this._arcs
-        .attr("d", function(d, i) {
+        .attr('d', function(d, i) {
             return self._arc
-                .innerRadius(self._innerRadius + 5)
-                .outerRadius(self._innerRadius + 35)
+                .innerRadius(self._getArcInnerRadius())
+                .outerRadius(self._getArcOuterRadius())
                 .startAngle(d.startAngle)
                 .endAngle(d.endAngle)();
         });
@@ -171,9 +189,7 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
             })).enter()
             .append('text')
             .attr('class', 'node')
-            .attr('dx', function(d) {
-                return d.x < 180 ? '30px' : '-30px';
-            }).attr('transform', function(d) {
+            .attr('transform', function(d) {
                 return 'rotate(' + (d.x - 90) + ') translate(' + (d.y + 8) + ', 0) ' + (d.x < 180 ? '' : 'rotate(180)');
             }).style('text-anchor', function(d) {
                 return d.x < 180 ? 'start' : 'end';
@@ -210,29 +226,33 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
             return d;
         })
 
-        self._groups = self._canvas.append("g")
-            .attr("class", "arc-canvas")
-            .selectAll("g")
+        self._groups = self._canvas.append('g')
+            .attr('class', 'arc-canvas')
+            .selectAll('g')
             .data(groupsData)
             .enter()
-            .append("g");
+            .append('g');
 
-        self._arcs = self._groups.append("path")
+        self._arcs = self._groups.append('path')
             .attr('id', function(d, i) {
                 return 'arc-' + i;
-            }).style("fill", function(d, i) {
+            }).style('fill', function(d, i) {
                 return self._color[i];
             });
 
-        self._arcsLables = self._groups.append("text")
+        self._arcsText = self._groups.append('text')
             .attr('class', 'arc-label')
-            .attr("dx", self._arcLabelsPadding)
-            .attr("dy", 20)
-            .append("textPath")
-            .attr("xlink:href", function(d, i) { return "#arc-" + i; })
-            .text(function(d) {
+            .attr('dx', self._arcLabelsPadding);
+        self._arcsLables = self._arcsText.append('textPath')
+            .attr('xlink:href', function(d, i) {
+                return '#arc-' + i;
+            }).text(function(d) {
                 return d.key;
             });
+        self._arcsText
+            .attr('dy', function(d, i) {
+                return self._arcWidth / 2 + this.getBoundingClientRect().height * 0.4;
+            })
 
         self._update();
     });
@@ -323,11 +343,9 @@ HierarchicalEdgeBundling.prototype._getLinks = function(nodes) {
 
     var links = [];
 
-    var leafs = nodes.filter(function(d) {
+    nodes.filter(function(d) {
         return d.depth === 2;
-    });
-
-    leafs.forEach(function(d, i) {
+    }).forEach(function(d, i) {
         for (var key in d) {
             if (key.substr(0, 4) == 'Link' && d[key] && d[key]) {
                 links.push({
