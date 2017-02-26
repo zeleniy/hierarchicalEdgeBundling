@@ -245,7 +245,8 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
 
         self._arcsText = self._groups.append('text')
             .attr('class', 'arc-label')
-            .attr('dx', self._arcLabelsPadding);
+            .attr('dx', self._arcLabelsPadding)
+            .style('font-size', self._arcWidth / 2);
         self._arcsLables = self._arcsText.append('textPath')
             .attr('xlink:href', function(d, i) {
                 return '#arc-' + i;
@@ -254,7 +255,7 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
             });
         self._arcsText
             .attr('dy', function(d, i) {
-                return self._arcWidth / 2 + this.getBoundingClientRect().height * 0.4;
+                return self._arcWidth / 2 + self._arcWidth * 0.2;
             })
 
         self._update();
