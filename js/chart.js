@@ -17,6 +17,11 @@ function HierarchicalEdgeBundling() {
             return d.x / 180 * Math.PI;
         });
 
+    var self = this;
+    d3.select(window).on('resize.' + this._getUniqueId(), function() {
+        self._resize();
+        self._update();
+    })
 }
 
 
@@ -50,6 +55,19 @@ HierarchicalEdgeBundling.prototype._update = function(selector) {
     this._canvas
         .attr('transform', 'translate(' + this._outerRadius + ', ' + this._outerRadius + ')');
 
+    var nodesData = this._cluster.nodes(this._getNodes(this._data));
+    var linksData = this._getLinks(nodesData);
+
+    this._links
+        .data(this._bundle(linksData))
+        .attr('d', this._lineGenerator);
+
+    this._nodes
+        .data(nodesData.filter(function(n) {
+            return ! n.children;
+        })).attr('transform', function(d) {
+            return 'rotate(' + (d.x - 90) + ')translate(' + (d.y + 8) + ',0)' + (d.x < 180 ? '' : 'rotate(180)');
+        });
 };
 
 
@@ -68,29 +86,29 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
 
     this._resize(dimension);
 
-    this._update();
-
     d3.csv('data/data.csv', function(error, data) {
+
+        self._data = data;
 
         var nodesData = self._cluster.nodes(self._getNodes(data));
         var linksData = self._getLinks(nodesData);
 
         self._links = self._canvas.append('g')
             .attr('class', 'links-canvas')
-            .selectAll('._links')
+            .selectAll('path.link')
             .data(self._bundle(linksData))
             .enter()
             .append('path')
             .each(function(d) {
                 d.source = d[0], d.target = d[d.length - 1];
-            }).attr('class', 'link')
-            .attr('d', self._lineGenerator);
+            }).attr('class', 'link');
 
         self._nodes = self._canvas.append('g')
             .attr('class', 'labels-canvas')
-            .selectAll('.node')
-            .data(nodesData.filter(function(n) { return !n.children; }))
-            .enter()
+            .selectAll('text.node')
+            .data(nodesData.filter(function(n) {
+                return !n.children;
+            })).enter()
             .append('text')
             .attr('class', 'node')
             .attr('dy', '.31em')
@@ -105,6 +123,8 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
             }).on('mouseout', function(d) {
                 return self._mouseEnterEventHandler(d);
             });
+
+        self._update();
     });
 };
 
@@ -197,4 +217,20 @@ HierarchicalEdgeBundling.prototype._getLinks = function(nodes) {
     }, this);
 
     return links;
+};
+
+
+/**
+ * Generate chart unique id.
+ * @see http://stackoverflow.com/a/2117523/1191125
+ * @pivate
+ * @param {String} pattern
+ * @returns {String}
+ */
+HierarchicalEdgeBundling.prototype._getUniqueId = function() {
+
+    return 'xxxxxxxxxxxxxxxx'.replace(/x/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r&0x3|0x8);
+        return v.toString(16);
+    });
 };
