@@ -38,3 +38,8 @@
 .link-target {
     stroke: #2ca02c;
 }
+
+text.arc-label {
+    text-transform: uppercase;
+    fill: #000;
+}

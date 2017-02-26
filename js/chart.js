@@ -1,5 +1,7 @@
 function HierarchicalEdgeBundling() {
 
+    this._arcLabelsPadding = 5;
+
     this._color = d3.scale.category20().range();
 
     this._bundle = d3.layout.bundle();
@@ -84,25 +86,46 @@ HierarchicalEdgeBundling.prototype._update = function(selector) {
                 .startAngle(d.startAngle)
                 .endAngle(d.endAngle)();
         });
+
+    this._arcsLables.style('visibility', function(d) {
+
+            var angle = self._toDegrees(d.endAngle - d.startAngle);
+            var arcLength = Math.PI * self._innerRadius / 180 * angle;
+            var text = self._canvas.append('text')
+                .style('visibility', 'hidden')
+                .text(d.key);
+            var width = text.node()
+                .getBoundingClientRect()
+                .width + self._arcLabelsPadding * 2;
+            text.remove();
+            
+            return arcLength > width ? 'visible' : 'hidden';
+        });
 };
 
 
 HierarchicalEdgeBundling.prototype._findStartAngle = function(children) {
+
     var min = children[0].x;
+
     children.forEach(function(d) {
        if (d.x < min)
            min = d.x;
     });
+
     return min;
 }
 
 
 HierarchicalEdgeBundling.prototype._findEndAngle = function(children) {
+
     var max = children[0].x;
+
     children.forEach(function(d) {
        if (d.x > max)
            max = d.x;
     });
+
     return max;
 }
 
@@ -167,43 +190,62 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
         });
 
         groupsData.map(function(d, i, a) {
-            d.startAngle = self._getRadians(self._findStartAngle(d.children));
-            d.endAngle   = self._getRadians(self._findEndAngle(d.children));
+            d.startAngle = self._toRadians(self._findStartAngle(d.children));
+            d.endAngle   = self._toRadians(self._findEndAngle(d.children));
 
             if (i === 0) {
-                d.startAngle += self._getRadians(0.5);
+                d.startAngle += self._toRadians(0.5);
             } else if (i === groupsData.length - 1) {
-                d.endAngle -= self._getRadians(0.5);
+                d.endAngle -= self._toRadians(0.5);
             }
 
             if (d.startAngle < Math.PI) {
-                d.startAngle -= self._getRadians(2);
+                d.startAngle -= self._toRadians(2);
             }
 
             if (d.endAngle > Math.PI) {
-                d.endAngle += self._getRadians(2);
+                d.endAngle += self._toRadians(2);
             }
 
             return d;
         })
 
-        self._arcs = self._canvas.append("g")
+        self._groups = self._canvas.append("g")
             .attr("class", "arc-canvas")
             .selectAll("g")
             .data(groupsData)
             .enter()
-            .append("g")
-            .append("path")
-            .style("fill", function(d, i) {
+            .append("g");
+
+        self._arcs = self._groups.append("path")
+            .attr('id', function(d, i) {
+                return 'arc-' + i;
+            }).style("fill", function(d, i) {
                 return self._color[i];
-            }).style("opacity", 0.5);
+            });
+
+        self._arcsLables = self._groups.append("text")
+            .attr('class', 'arc-label')
+            .attr("dx", self._arcLabelsPadding)
+            .attr("dy", 20)
+            .append("textPath")
+            .attr("xlink:href", function(d, i) { return "#arc-" + i; })
+            .text(function(d) {
+                return d.key;
+            });
 
         self._update();
     });
 };
 
 
-HierarchicalEdgeBundling.prototype._getRadians = function(degrees) {
+HierarchicalEdgeBundling.prototype._toDegrees = function(radians) {
+
+    return radians * 180 / Math.PI;
+};
+
+
+HierarchicalEdgeBundling.prototype._toRadians = function(degrees) {
 
   return degrees * Math.PI / 180;
 };
