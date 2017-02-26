@@ -85,7 +85,10 @@ HierarchicalEdgeBundling.prototype._update = function(selector) {
 
     this._links
         .data(this._bundle(linksData))
-        .attr('d', this._lineGenerator);
+        .attr('d', this._lineGenerator)
+        .each(function(d) {
+            d.source = d[0], d.target = d[d.length - 1];
+        });
 
     this._nodes
         .data(nodesData.filter(function(n) {
