@@ -108,7 +108,8 @@ HierarchicalEdgeBundling.prototype._update = function(selector) {
                 .endAngle(d.endAngle)();
         });
 
-    this._arcsLables.style('visibility', function(d) {
+    this._arcsLables
+        .style('visibility', function(d) {
 
             var angle = self._toDegrees(d.endAngle - d.startAngle);
             var arcLength = Math.PI * self._innerRadius / 180 * angle;
@@ -121,6 +122,19 @@ HierarchicalEdgeBundling.prototype._update = function(selector) {
             text.remove();
             
             return arcLength > width ? 'visible' : 'hidden';
+        });
+
+    this._legendRects
+        .attr('x', function(d, i) {
+            return 15 - self._outerRadius;
+        }).attr('y', function(d, i) {
+            return i * 15 - self._outerRadius + (i + 1) * 2;
+        });
+    this._legendText
+        .attr('x', function(d, i) {
+            return 15 + 15 + 2 - self._outerRadius;
+        }).attr('y', function(d, i) {
+            return i * 15 - self._outerRadius + (i + 1) * 2 + 12;
         });
 };
 
@@ -159,7 +173,8 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
     var dimension = this._container.node().getBoundingClientRect();
 
     this._svg = d3.select(selector)
-        .append('svg');
+        .append('svg')
+        .attr('class', 'hierarchical-edge-bundling');
     this._canvas = this._svg
         .append('g')
         .attr('class', 'canvas');
@@ -256,7 +271,28 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
         self._arcsText
             .attr('dy', function(d, i) {
                 return self._arcWidth / 2 + self._arcWidth * 0.2;
-            })
+            });
+        /*
+         * Render legend.
+         */
+        var legendItems = self._canvas.append('g')
+            .attr('class', 'legend-canvas')
+            .selectAll('g.legend-item')
+            .data(groupsData)
+            .enter()
+            .append('g')
+            .attr('class', 'legend-item');
+        self._legendRects = legendItems.append('rect')
+            .attr('width', 15)
+            .attr('height', 15)
+            .style('fill', function(d, i) {
+                return self._color[i];
+            });
+        self._legendText = legendItems.append('text')
+            .style('font-size', '12px')
+            .text(function(d, i) {
+                return d.key;
+            });
 
         self._update();
     });

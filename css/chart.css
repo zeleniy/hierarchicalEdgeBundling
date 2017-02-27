@@ -1,45 +1,49 @@
-.node {
+svg.hierarchical-edge-bundling .node {
     font: 300 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
     fill: #bbb;
 }
 
-.node:hover {
+svg.hierarchical-edge-bundling .node:hover {
     fill: #000;
 }
 
-.link {
+svg.hierarchical-edge-bundling .link {
     stroke: steelblue;
     stroke-opacity: .4;
     fill: none;
     pointer-events: none;
 }
 
-.node:hover, .node-source, .node-target {
+svg.hierarchical-edge-bundling .node:hover, svg.hierarchical-edge-bundling .node-source, svg.hierarchical-edge-bundling .node-target {
     font-weight: 700;
 }
 
-.node-source {
+svg.hierarchical-edge-bundling .node-source {
     fill: #2ca02c;
 }
 
-.node-target {
+svg.hierarchical-edge-bundling .node-target {
     fill: #d62728;
 }
 
-.link-source, .link-target {
+svg.hierarchical-edge-bundling .link-source, svg.hierarchical-edge-bundling .link-target {
     stroke-opacity: 1;
     stroke-width: 2px;
 }
 
-.link-source {
+svg.hierarchical-edge-bundling .link-source {
     stroke: #d62728;
 }
 
-.link-target {
+svg.hierarchical-edge-bundling .link-target {
     stroke: #2ca02c;
 }
 
-text.arc-label {
+svg.hierarchical-edge-bundling text.arc-label {
     text-transform: uppercase;
     fill: #000;
+}
+
+svg.hierarchical-edge-bundling g.legend-canvas text {
+    fill: #828282;
 }
