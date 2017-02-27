@@ -525,10 +525,10 @@ HierarchicalEdgeBundling.prototype._getNodes = function(nodes) {
     var map  = {};
 
     root.children = _.uniqBy(nodes, function(d) {
-            return d['Page.Type']
+            return d['Page Type']
         }).map(function(d) {
-            return map[d['Page.Type']] = {
-                key: d['Page.Type'],
+            return map[d['Page Type']] = {
+                key: d['Page Type'],
                 parent: root,
                 children: []
             }
@@ -536,13 +536,13 @@ HierarchicalEdgeBundling.prototype._getNodes = function(nodes) {
 
     this._nodesMap  = {};
     nodes.forEach(function(d, i) {
-        var parent = map[d['Page.Type']];
+        var parent = map[d['Page Type']];
 
         d.parent = parent;
         d.children = [];
-        d.key = d['Page.Name'];
+        d.key = d['Page Name'];
 
-        this._nodesMap[d['Page.ID']] = d;
+        this._nodesMap[d['Page ID']] = d;
 
         parent.children.push(d);
     }, this);
