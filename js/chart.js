@@ -1,3 +1,8 @@
+/**
+ * @author Zelenin Alexandr <zeleniy.spb@gmail.com>
+ * @public
+ * @class
+ */
 function HierarchicalEdgeBundling(config) {
 
     this._config = config || {};
@@ -12,9 +17,12 @@ function HierarchicalEdgeBundling(config) {
 
     this._cluster = d3.layout.cluster();
 
+    this._tensionScale = d3.scale.linear()
+        .range([0, 1]);
+
     this._lineGenerator = d3.svg.line.radial()
         .interpolate('bundle')
-        .tension(.85)
+        .tension(this._config.tension || 0.85)
         .radius(function(d) {
             return d.y;
         }).angle(function(d) {
@@ -136,6 +144,21 @@ HierarchicalEdgeBundling.prototype._update = function(selector) {
         }).attr('y', function(d, i) {
             return i * 15 - self._outerRadius + (i + 1) * 2 + 12;
         });
+
+    var x1 = self._outerRadius / 2;
+    var x2 = self._outerRadius - 20;
+
+    self._controls.select('text')
+        .attr('x', x1)
+        .attr('y', - self._outerRadius + 15);
+    self._controls.select('line')
+        .attr('x1', x1)
+        .attr('y1', - self._outerRadius + 25)
+        .attr('x2', x2)
+        .attr('y2', - self._outerRadius + 25);
+    self._controls.select('circle')
+        .attr('cx', x1 + self._lineGenerator.tension() * (x2 - x1))
+        .attr('cy', - self._outerRadius + 25);
 };
 
 
@@ -293,6 +316,33 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
             .text(function(d, i) {
                 return d.key;
             });
+        /*
+         * Render tension controls.
+         */
+        self._controls = self._canvas.append('g')
+            .attr('class', 'tension-controls');
+
+        self._controls.append('text')
+            .text('tension:');
+        self._controls.append('line');
+        self._controls.append('circle')
+            .attr('r', 8)
+            .call(d3.behavior.drag()
+                .on('drag', function() {
+
+                    var x1 = self._outerRadius / 2;
+                    var x2 = self._outerRadius - 20;
+
+                    self._tensionScale.domain([x1, x2]);
+
+                    var circle = d3.select(this);
+                    var x = Number(circle.attr('cx')) + d3.event.dx;
+                    circle.attr('cx', Math.max(x1, Math.min(x2, x)));
+
+                    var tension = Math.max(0, Math.min(1, self._tensionScale(x)));
+                    self._lineGenerator.tension(tension);
+                    self._update();
+                }));
 
         self._update();
     });

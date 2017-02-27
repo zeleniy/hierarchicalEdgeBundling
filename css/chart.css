@@ -47,3 +47,19 @@ svg.hierarchical-edge-bundling text.arc-label {
 svg.hierarchical-edge-bundling g.legend-canvas text {
     fill: #828282;
 }
+
+svg.hierarchical-edge-bundling g.tension-controls text {
+    fill: #828282;
+}
+
+svg.hierarchical-edge-bundling g.tension-controls line {
+    stroke: #aec7e8;
+    stroke-width: 2;
+}
+
+svg.hierarchical-edge-bundling g.tension-controls circle {
+    fill: #fff;
+    stroke: #aec7e8;
+    stroke-width: 2;
+    cursor: move;
+}
