@@ -20,10 +20,12 @@
     </div>
     <script>
     HierarchicalEdgeBundling.getInstance({
-        'innerRadiusDiff' : 180,
-        'arcLabelsPadding' : 5,
-        'arcWidth' : 30,
-        'tension': 0.85
+        'url': 'data/data.csv',
+        'innerRadiusDiff': 180,
+        'arcLabelsPadding': 5,
+        'arcWidth': 30,
+        'tension': 0.85,
+        'colorSet': d3.scale.category20().range()
     }).renderTo('#chart')
     </script>
 </body>

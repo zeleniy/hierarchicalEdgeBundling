@@ -2,24 +2,64 @@
  * @author Zelenin Alexandr <zeleniy.spb@gmail.com>
  * @public
  * @class
+ * @param {Object} config
  */
 function HierarchicalEdgeBundling(config) {
-
-    this._config = config || {};
-
+    /**
+     * Chart config.
+     * @private
+     * @member {Object}
+     */
+    this._config = config;
+    /**
+     * Arc labels left padding.
+     * @private
+     * @member {Number}
+     */
     this._arcLabelsPadding = this._config.arcLabelsPadding || 5;
+    /**
+     * Difference betweeb outer and inner radiues.
+     * Defines arcs inner radius.
+     * @private
+     * @member {Number}
+     */
     this._innerRadiusDiff = this._config.innerRadiusDiff || 120;
+    /**
+     * Arcs width.
+     * @private
+     * @member {Number}
+     */
     this._arcWidth = this._config.arcWidth || 30;
-
-    this._color = d3.scale.category20().range();
-
+    /**
+     * Arcs color set.
+     * @private
+     * @member {String[]}
+     */
+    this._color = this._config.colorSet || d3.scale.category20().range();
+    /**
+     * Bundle layout.
+     * @private
+     * @member {Function}
+     */
     this._bundle = d3.layout.bundle();
-
+    /**
+     * Cluster layout.
+     * @private
+     * @member {Function}
+     */
     this._cluster = d3.layout.cluster();
-
+    /**
+     * Links tension scale.
+     * @private
+     * @member {Function}
+     */
     this._tensionScale = d3.scale.linear()
         .range([0, 1]);
-
+    /**
+     * Links path generator.
+     * @private
+     * @member {Function}
+     */
     this._lineGenerator = d3.svg.line.radial()
         .interpolate('bundle')
         .tension(this._config.tension || 0.85)
@@ -28,10 +68,19 @@ function HierarchicalEdgeBundling(config) {
         }).angle(function(d) {
             return d.x / 180 * Math.PI;
         });
-
+    /**
+     * Arcs generator.
+     * @private
+     * @member {Function}
+     */
     this._arc = d3.svg.arc();
-
+    /*
+     * Stash reference to this object.
+     */
     var self = this;
+    /*
+     * Define window resize event handler.
+     */
     d3.select(window).on('resize.' + this._getUniqueId(), function() {
         self._resize();
         self._update();
@@ -39,12 +88,24 @@ function HierarchicalEdgeBundling(config) {
 }
 
 
+/**
+ * Factory method.
+ * @public
+ * @static
+ * @param {Object} config
+ * @returns {HierarchicalEdgeBundling}
+ */
 HierarchicalEdgeBundling.getInstance = function(config) {
 
     return new HierarchicalEdgeBundling(config);
 };
 
 
+/**
+ * Recalculate chart dimensions.
+ * @private
+ * @param {Object} [dimension] - dimension of parent container.
+ */
 HierarchicalEdgeBundling.prototype._resize = function(dimension) {
 
     dimension = dimension || this._container.node().getBoundingClientRect();
@@ -65,18 +126,32 @@ HierarchicalEdgeBundling.prototype._resize = function(dimension) {
 };
 
 
+/**
+ * Get arcs inner radius.
+ * @private
+ * @returns {Number}
+ */
 HierarchicalEdgeBundling.prototype._getArcInnerRadius = function() {
 
     return this._innerRadius + 5;
 };
 
 
+/**
+ * Get arcs outer radius.
+ * @private
+ * @returns {Number}
+ */
 HierarchicalEdgeBundling.prototype._getArcOuterRadius = function() {
 
     return this._innerRadius + this._arcWidth + 5;
 };
 
 
+/**
+ * Update chart view.
+ * @private
+ */
 HierarchicalEdgeBundling.prototype._update = function(selector) {
 
     var self = this;
@@ -162,6 +237,13 @@ HierarchicalEdgeBundling.prototype._update = function(selector) {
 };
 
 
+/**
+ * Find arc start angle.
+ * @private
+ * @see http://stackoverflow.com/a/13624617/1191125
+ * @param {Object[]} children
+ * @returns {Number}
+ */
 HierarchicalEdgeBundling.prototype._findStartAngle = function(children) {
 
     var min = children[0].x;
@@ -175,6 +257,13 @@ HierarchicalEdgeBundling.prototype._findStartAngle = function(children) {
 }
 
 
+/**
+ * Find arc end angle.
+ * @private
+ * @see http://stackoverflow.com/a/13624617/1191125
+ * @param {Object[]} children
+ * @returns {Number}
+ */
 HierarchicalEdgeBundling.prototype._findEndAngle = function(children) {
 
     var max = children[0].x;
@@ -188,6 +277,11 @@ HierarchicalEdgeBundling.prototype._findEndAngle = function(children) {
 }
 
 
+/**
+ * Render chart.
+ * @public
+ * @param {String} selector
+ */
 HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
 
     var self = this;
@@ -204,7 +298,7 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
 
     this._resize(dimension);
 
-    d3.csv('data/data.csv', function(error, data) {
+    d3.csv(this._config.url, function(error, data) {
 
         self._data = data;
 
@@ -349,18 +443,35 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
 };
 
 
+/**
+ * Convert radians to degrees.
+ * @private
+ * @param {Number} radians
+ * @returns {Number}
+ */
 HierarchicalEdgeBundling.prototype._toDegrees = function(radians) {
 
     return radians * 180 / Math.PI;
 };
 
 
+/**
+ * Convert radians to degrees.
+ * @private
+ * @param {Number} radians
+ * @returns {Number}
+ */
 HierarchicalEdgeBundling.prototype._toRadians = function(degrees) {
 
   return degrees * Math.PI / 180;
 };
 
 
+/**
+ * Node mouse over event handler.
+ * @private
+ * @param {Object} d
+ */
 HierarchicalEdgeBundling.prototype._mouseOverEventHandler = function(d) {
 
     this._nodes.each(function(n) {
@@ -385,6 +496,11 @@ HierarchicalEdgeBundling.prototype._mouseOverEventHandler = function(d) {
 };
 
 
+/**
+ * Node mouse out event handler.
+ * @private
+ * @param {Object} d
+ */
 HierarchicalEdgeBundling.prototype._mouseEnterEventHandler = function() {
 
   this._links
@@ -397,6 +513,12 @@ HierarchicalEdgeBundling.prototype._mouseEnterEventHandler = function() {
 };
 
 
+/**
+ * Get nodes list.
+ * @private
+ * @param {Object[]} nodes
+ * @retuns {Object[]}
+ */
 HierarchicalEdgeBundling.prototype._getNodes = function(nodes) {
 
     var root = {};
@@ -429,6 +551,12 @@ HierarchicalEdgeBundling.prototype._getNodes = function(nodes) {
 };
 
 
+/**
+ * Get links list.
+ * @private
+ * @param {Object[]} nodes
+ * @retuns {Object[][]}
+ */
 HierarchicalEdgeBundling.prototype._getLinks = function(nodes) {
 
     var links = [];
