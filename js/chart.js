@@ -37,6 +37,12 @@ function HierarchicalEdgeBundling(config) {
      */
     this._color = this._config.colorSet || d3.scale.category20().range();
     /**
+     * Radial labels max string length.
+     * @private
+     * @member {Integer}
+     */
+    this._maxStrLength = this._config.maxStrLength;
+    /**
      * Bundle layout.
      * @private
      * @member {Function}
@@ -400,7 +406,11 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
             }).style('text-anchor', function(d) {
                 return d.x < 180 ? 'start' : 'end';
             }).text(function(d) {
-                return d.key;
+                if (self._maxStrLength && d.key.length > self._maxStrLength) {
+                    return d.key.substr(0, self._maxStrLength) + '…';
+                } else {
+                    return d.key;
+                }
             }).on('mouseover', function(d) {
                 return self._mouseOverEventHandler(d);
             }).on('mouseout', function(d) {
