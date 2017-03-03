@@ -41,7 +41,7 @@ function HierarchicalEdgeBundling(config) {
      * @private
      * @member {Integer}
      */
-    this._maxStrLength = this._config.maxStrLength;
+    this._maxLabelLength = this._config.maxLabelLength;
     /**
      * Bundle layout.
      * @private
@@ -87,8 +87,8 @@ function HierarchicalEdgeBundling(config) {
      */
     this._legend = {
         rowsNumber: 0,
+        size: 15,
         labelPadding: 5,
-        groupPadding: 20,
         fontSize: 12
     };
     /*
@@ -122,20 +122,16 @@ HierarchicalEdgeBundling.getInstance = function(config) {
  * Recalculate chart dimensions.
  * @private
  * @param {Object} [dimension] - dimension of parent container.
- * @param {Boolean} [withLegend]
  */
-HierarchicalEdgeBundling.prototype._resize = function(dimension, withLegend) {
-
-    var bottomOffset = withLegend ? (this._legend.rowsNumber + 1) * 17 : 0;
+HierarchicalEdgeBundling.prototype._resize = function(dimension) {
 
     dimension = dimension || this._container.node().getBoundingClientRect();
 
     this._width = dimension.width;
     this._height = dimension.height || this._width;
 
-    this._outerDiameter = Math.min(this._width, this._height);
-    this._innerDiameter = this._outerDiameter - bottomOffset - 10;
-    this._outerRadius = this._outerDiameter / 2,
+    this._diameter = Math.min(this._width, this._height);
+    this._outerRadius = this._diameter / 2,
     this._innerRadius = this._outerRadius - this._innerRadiusDiff;
 
     this._cluster
@@ -173,76 +169,80 @@ HierarchicalEdgeBundling.prototype._getArcOuterRadius = function() {
  * Update chart view.
  * @private
  */
-HierarchicalEdgeBundling.prototype._update = function(selector) {
+HierarchicalEdgeBundling.prototype._update = function() {
 
     var self = this;
 
-    this._legend.rowsNumber = 0;
-    var strX = - self._outerRadius;
+    var strX = 0;
     var strLength = 0;
+    this._legend.rowsNumber = 0;
 
-    this._legendCanvas.selectAll('g.legend-item')
+    self._legendCanvas.selectAll('g.legend-item')
         .each(function(d, i) {
 
             var container = d3.select(this);
 
-            strX = strX + (i === 0 ? 2 : self._legend.groupPadding);
             var rect = container.select('rect')
                 .attr('x', function() {
                     return strX;
                 }).attr('y', function() {
-                    return self._legend.rowsNumber * 15 + 2 * self._legend.rowsNumber;
+                    return self._legend.rowsNumber * self._legend.size + 2 * self._legend.rowsNumber;
                 });
 
-            strLength += self._legend.groupPadding + 15;
-            strX = strX + self._legend.labelPadding + 15;
+            strLength += self._legend.size;
+            strX = strX + self._legend.labelPadding + self._legend.size;
 
             var text = container.select('text')
                 .attr('x', function() {
                     return strX;
                 }).attr('y', function() {
-                    return self._legend.rowsNumber * 15 + self._legend.fontSize + 2 * self._legend.rowsNumber;
+                    return self._legend.rowsNumber * self._legend.size + self._legend.fontSize + 2 * self._legend.rowsNumber;
                 });
 
-            var strWidth = text.node().getBoundingClientRect().width
-            strLength += self._legend.labelPadding + strWidth;
-            strX = strX + strWidth;
+            strLength += self._legend.labelPadding + self._maxStrLength;
+            strX = strX + self._maxStrLength;
 
-            if (strLength > self._outerDiameter) {
+            if (strLength > self._diameter) {
 
                 self._legend.rowsNumber ++;
 
-                strX = - self._outerRadius + 2;
+                strX = 0;
                 strLength = 0;
 
                 rect.attr('x', function() {
                         return strX;
                     }).attr('y', function() {
-                        return self._legend.rowsNumber * 15 + 2 * self._legend.rowsNumber;
+                        return self._legend.rowsNumber * self._legend.size + 2 * self._legend.rowsNumber;
                     });
 
-                strLength += 2 + 15;
-                strX = strX + self._legend.labelPadding + 15;
+                strLength += 2 + self._legend.size;
+                strX = strX + self._legend.labelPadding + self._legend.size;
 
                 text.attr('x', function() {
                         return strX;
                     }).attr('y', function() {
-                        return self._legend.rowsNumber * 15 + self._legend.fontSize + 2 * self._legend.rowsNumber;
+                        return self._legend.rowsNumber * self._legend.size + self._legend.fontSize + 2 * self._legend.rowsNumber;
                     });
 
-                strLength += self._legend.labelPadding + strWidth;
-                strX = strX + strWidth;
+                strLength += self._legend.labelPadding + self._maxStrLength;
+                strX = strX + self._maxStrLength;
             }
-        })
-
-    this._resize();
+        });
 
     this._svg
-        .attr('width', this._outerDiameter)
-        .attr('height', this._outerDiameter);
+        .attr('width', this._diameter)
+        .attr('height', this._diameter);
 
     this._canvas
         .attr('transform', 'translate(' + this._outerRadius + ', ' + this._outerRadius + ')');
+
+    this._legendContainer
+        .attr('width', this._diameter)
+        .attr('height', self._legend.rowsNumber * 17);
+
+    var legendWidth = this._legendCanvas.node().getBoundingClientRect().width;
+    this._legendCanvas
+        .attr('transform', 'translate(' + ((this._diameter - legendWidth) / 2) + ', 0)');
 
     var nodesData = this._cluster.nodes(this._getNodes(this._data));
     var linksData = this._getLinks(nodesData);
@@ -287,12 +287,6 @@ HierarchicalEdgeBundling.prototype._update = function(selector) {
             
             return arcLength > width ? 'visible' : 'hidden';
         });
-
-    var legendHeight = (this._legend.rowsNumber + 1) * 17;
-    this._chartCanvas
-        .attr('transform', 'translate(0, -' + (legendHeight / 2) + ')');
-    this._legendCanvas
-        .attr('transform', 'translate(0, ' + (this._outerDiameter / 2 - legendHeight) + ')');
 
     var x1 = self._outerRadius / 2;
     var x2 = self._outerRadius - 20;
@@ -361,17 +355,24 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
     var self = this;
 
     this._container = d3.select(selector);
+
+    var chartContainer = this._container.append('div')
+        .attr('class', 'hierarchical-edge-bundling-chart');
+    this._legendContainer = this._container.append('div')
+        .attr('class', 'hierarchical-edge-bundling-legend')
+        .append('svg')
+        .attr('class', 'hierarchical-edge-bundling-legend')
+        .attr('height', 10);
+    this._legendCanvas = this._legendContainer.append('g')
+        .attr('class', 'legend-canvas');
+
     var dimension = this._container.node().getBoundingClientRect();
 
-    this._svg = d3.select(selector)
-        .append('svg')
-        .attr('class', 'hierarchical-edge-bundling');
+    this._svg = chartContainer.append('svg')
+        .attr('class', 'hierarchical-edge-bundling-chart');
     this._canvas = this._svg
         .append('g')
         .attr('class', 'canvas');
-    this._chartCanvas = this._canvas
-        .append('g')
-        .attr('class', 'chart-canvas');
 
     this._resize(dimension);
 
@@ -383,7 +384,7 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
 
         var linksData = self._getLinks(nodesData);
 
-        self._links = self._chartCanvas.append('g')
+        self._links = self._canvas.append('g')
             .attr('class', 'links-canvas')
             .selectAll('path.link')
             .data(self._bundle(linksData))
@@ -393,7 +394,7 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
                 d.source = d[0], d.target = d[d.length - 1];
             }).attr('class', 'link');
 
-        self._nodes = self._chartCanvas.append('g')
+        self._nodes = self._canvas.append('g')
             .attr('class', 'labels-canvas')
             .selectAll('text.node')
             .data(nodesData.filter(function(n) {
@@ -406,8 +407,8 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
             }).style('text-anchor', function(d) {
                 return d.x < 180 ? 'start' : 'end';
             }).text(function(d) {
-                if (self._maxStrLength && d.key.length > self._maxStrLength) {
-                    return d.key.substr(0, self._maxStrLength) + '…';
+                if (self._maxLabelLength && d.key.length > self._maxLabelLength) {
+                    return d.key.substr(0, self._maxLabelLength) + '…';
                 } else {
                     return d.key;
                 }
@@ -442,7 +443,7 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
             return d;
         })
 
-        self._groups = self._chartCanvas.append('g')
+        self._groups = self._canvas.append('g')
             .attr('class', 'arc-canvas')
             .selectAll('g')
             .data(groupsData)
@@ -473,11 +474,14 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
         /*
          * Render legend.
          */
-        var strX = - self._outerRadius;
+        var strX = 0;
         var strLength = 0;
-
-        self._legendCanvas = self._canvas.append('g')
-            .attr('class', 'legend-canvas');
+        self._maxStrLength = groupsData.reduce(function(length, d) {
+            var text = self._svg.append('text').text(d.key);
+            length = Math.max(length, text.node().getBoundingClientRect().width);
+            text.remove();
+            return length;
+        }, 0)
 
         self._legendCanvas.selectAll('g.legend-item')
             .data(groupsData)
@@ -488,7 +492,6 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
 
                 var container = d3.select(this);
 
-                strX = strX + (i === 0 ? 2 : self._legend.groupPadding);
                 var rect = container.append('rect')
                     .attr('width', 15)
                     .attr('height', 15)
@@ -500,7 +503,7 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
                         return self._color[i];
                     });
 
-                strLength += self._legend.groupPadding + 15;
+                strLength += 15;
                 strX = strX + self._legend.labelPadding + 15;
 
                 var text = container.append('text')
@@ -513,15 +516,14 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
                         return d.key;
                     });
 
-                var strWidth = text.node().getBoundingClientRect().width
-                strLength += self._legend.labelPadding + strWidth;
-                strX = strX + strWidth;
+                strLength += self._legend.labelPadding + self._maxStrLength;
+                strX = strX + self._maxStrLength;
 
-                if (strLength > self._outerDiameter) {
+                if (strLength > self._diameter) {
 
                     self._legend.rowsNumber ++;
 
-                    strX = - self._outerRadius + 2;
+                    strX = 0;
                     strLength = 0;
 
                     rect.attr('x', function() {
@@ -539,10 +541,12 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
                             return self._legend.rowsNumber * 15 + self._legend.fontSize + 2 * self._legend.rowsNumber;
                         });
 
-                    strLength += self._legend.labelPadding + strWidth;
-                    strX = strX + strWidth;
+                    strLength += self._legend.labelPadding + self._maxStrLength;
+                    strX = strX + self._maxStrLength;
                 }
-            })
+            });
+
+        self._legendContainer.attr('height', self._legend.rowsNumber * 17 - 2);
         /*
          * Render tension controls.
          */
@@ -571,7 +575,6 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
                     self._update();
                 }));
 
-        self._resize(undefined, true);
         self._update();
     });
 };

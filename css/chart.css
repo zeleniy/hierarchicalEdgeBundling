@@ -1,63 +1,71 @@
-svg.hierarchical-edge-bundling .node {
+svg.hierarchical-edge-bundling-legend {
+    vertical-align: top;
+}
+
+svg.hierarchical-edge-bundling-chart {
+    vertical-align: top;
+}
+
+svg.hierarchical-edge-bundling-chart .node {
     font: 300 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
     fill: #bbb;
 }
 
-svg.hierarchical-edge-bundling .node:hover {
+svg.hierarchical-edge-bundling-chart .node:hover {
     fill: #000;
 }
 
-svg.hierarchical-edge-bundling .link {
+svg.hierarchical-edge-bundling-chart .link {
     stroke: steelblue;
     stroke-opacity: .4;
     fill: none;
     pointer-events: none;
 }
 
-svg.hierarchical-edge-bundling .node:hover, svg.hierarchical-edge-bundling .node-source, svg.hierarchical-edge-bundling .node-target {
+svg.hierarchical-edge-bundling-chart .node:hover, svg.hierarchical-edge-bundling-chart .node-source, svg.hierarchical-edge-bundling-chart .node-target {
     font-weight: 700;
 }
 
-svg.hierarchical-edge-bundling .node-source {
+svg.hierarchical-edge-bundling-chart .node-source {
     fill: #2ca02c;
 }
 
-svg.hierarchical-edge-bundling .node-target {
+svg.hierarchical-edge-bundling-chart .node-target {
     fill: #d62728;
 }
 
-svg.hierarchical-edge-bundling .link-source, svg.hierarchical-edge-bundling .link-target {
+svg.hierarchical-edge-bundling-chart .link-source, svg.hierarchical-edge-bundling-chart .link-target {
     stroke-opacity: 1;
     stroke-width: 2px;
 }
 
-svg.hierarchical-edge-bundling .link-source {
+svg.hierarchical-edge-bundling-chart .link-source {
     stroke: #d62728;
 }
 
-svg.hierarchical-edge-bundling .link-target {
+svg.hierarchical-edge-bundling-chart .link-target {
     stroke: #2ca02c;
 }
 
-svg.hierarchical-edge-bundling text.arc-label {
+svg.hierarchical-edge-bundling-chart text.arc-label {
     text-transform: uppercase;
     fill: #000;
 }
 
-svg.hierarchical-edge-bundling g.legend-canvas text {
+svg.hierarchical-edge-bundling-chart g.legend-canvas text {
     fill: #828282;
 }
 
-svg.hierarchical-edge-bundling g.tension-controls text {
+svg.hierarchical-edge-bundling-chart g.tension-controls text {
     fill: #828282;
 }
 
-svg.hierarchical-edge-bundling g.tension-controls line {
+svg.hierarchical-edge-bundling-chart g.tension-controls line {
     stroke: #aec7e8;
     stroke-width: 2;
 }
 
-svg.hierarchical-edge-bundling g.tension-controls circle {
+svg.hierarchical-edge-bundling-chart g.tension-controls circle {
     fill: #fff;
     stroke: #aec7e8;
     stroke-width: 2;
