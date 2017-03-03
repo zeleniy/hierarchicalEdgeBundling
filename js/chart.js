@@ -74,6 +74,17 @@ function HierarchicalEdgeBundling(config) {
      * @member {Function}
      */
     this._arc = d3.svg.arc();
+    /**
+     * Legend configuration.
+     * @private
+     * @member {Object}
+     */
+    this._legend = {
+        rowsNumber: 0,
+        labelPadding: 5,
+        groupPadding: 20,
+        fontSize: 12
+    };
     /*
      * Stash reference to this object.
      */
@@ -105,16 +116,20 @@ HierarchicalEdgeBundling.getInstance = function(config) {
  * Recalculate chart dimensions.
  * @private
  * @param {Object} [dimension] - dimension of parent container.
+ * @param {Boolean} [withLegend]
  */
-HierarchicalEdgeBundling.prototype._resize = function(dimension) {
+HierarchicalEdgeBundling.prototype._resize = function(dimension, withLegend) {
+
+    var bottomOffset = withLegend ? (this._legend.rowsNumber + 1) * 17 : 0;
 
     dimension = dimension || this._container.node().getBoundingClientRect();
 
     this._width = dimension.width;
     this._height = dimension.height || this._width;
 
-    this._diameter = Math.min(this._width, this._height);
-    this._outerRadius = this._diameter / 2,
+    this._outerDiameter = Math.min(this._width, this._height);
+    this._innerDiameter = this._outerDiameter - bottomOffset - 10;
+    this._outerRadius = this._outerDiameter / 2,
     this._innerRadius = this._outerRadius - this._innerRadiusDiff;
 
     this._cluster
@@ -156,9 +171,69 @@ HierarchicalEdgeBundling.prototype._update = function(selector) {
 
     var self = this;
 
+    this._legend.rowsNumber = 0;
+    var strX = - self._outerRadius;
+    var strLength = 0;
+
+    this._legendCanvas.selectAll('g.legend-item')
+        .each(function(d, i) {
+
+            var container = d3.select(this);
+
+            strX = strX + (i === 0 ? 2 : self._legend.groupPadding);
+            var rect = container.select('rect')
+                .attr('x', function() {
+                    return strX;
+                }).attr('y', function() {
+                    return self._legend.rowsNumber * 15 + 2 * self._legend.rowsNumber;
+                });
+
+            strLength += self._legend.groupPadding + 15;
+            strX = strX + self._legend.labelPadding + 15;
+
+            var text = container.select('text')
+                .attr('x', function() {
+                    return strX;
+                }).attr('y', function() {
+                    return self._legend.rowsNumber * 15 + self._legend.fontSize + 2 * self._legend.rowsNumber;
+                });
+
+            var strWidth = text.node().getBoundingClientRect().width
+            strLength += self._legend.labelPadding + strWidth;
+            strX = strX + strWidth;
+
+            if (strLength > self._outerDiameter) {
+
+                self._legend.rowsNumber ++;
+
+                strX = - self._outerRadius + 2;
+                strLength = 0;
+
+                rect.attr('x', function() {
+                        return strX;
+                    }).attr('y', function() {
+                        return self._legend.rowsNumber * 15 + 2 * self._legend.rowsNumber;
+                    });
+
+                strLength += 2 + 15;
+                strX = strX + self._legend.labelPadding + 15;
+
+                text.attr('x', function() {
+                        return strX;
+                    }).attr('y', function() {
+                        return self._legend.rowsNumber * 15 + self._legend.fontSize + 2 * self._legend.rowsNumber;
+                    });
+
+                strLength += self._legend.labelPadding + strWidth;
+                strX = strX + strWidth;
+            }
+        })
+
+    this._resize();
+
     this._svg
-        .attr('width', this._diameter)
-        .attr('height', this._diameter);
+        .attr('width', this._outerDiameter)
+        .attr('height', this._outerDiameter);
 
     this._canvas
         .attr('transform', 'translate(' + this._outerRadius + ', ' + this._outerRadius + ')');
@@ -207,18 +282,11 @@ HierarchicalEdgeBundling.prototype._update = function(selector) {
             return arcLength > width ? 'visible' : 'hidden';
         });
 
-    this._legendRects
-        .attr('x', function(d, i) {
-            return 15 - self._outerRadius;
-        }).attr('y', function(d, i) {
-            return i * 15 - self._outerRadius + (i + 1) * 2;
-        });
-    this._legendText
-        .attr('x', function(d, i) {
-            return 15 + 15 + 2 - self._outerRadius;
-        }).attr('y', function(d, i) {
-            return i * 15 - self._outerRadius + (i + 1) * 2 + 12;
-        });
+    var legendHeight = (this._legend.rowsNumber + 1) * 17;
+    this._chartCanvas
+        .attr('transform', 'translate(0, -' + (legendHeight / 2) + ')');
+    this._legendCanvas
+        .attr('transform', 'translate(0, ' + (this._outerDiameter / 2 - legendHeight) + ')');
 
     var x1 = self._outerRadius / 2;
     var x2 = self._outerRadius - 20;
@@ -295,6 +363,9 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
     this._canvas = this._svg
         .append('g')
         .attr('class', 'canvas');
+    this._chartCanvas = this._canvas
+        .append('g')
+        .attr('class', 'chart-canvas');
 
     this._resize(dimension);
 
@@ -306,7 +377,7 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
 
         var linksData = self._getLinks(nodesData);
 
-        self._links = self._canvas.append('g')
+        self._links = self._chartCanvas.append('g')
             .attr('class', 'links-canvas')
             .selectAll('path.link')
             .data(self._bundle(linksData))
@@ -316,7 +387,7 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
                 d.source = d[0], d.target = d[d.length - 1];
             }).attr('class', 'link');
 
-        self._nodes = self._canvas.append('g')
+        self._nodes = self._chartCanvas.append('g')
             .attr('class', 'labels-canvas')
             .selectAll('text.node')
             .data(nodesData.filter(function(n) {
@@ -361,7 +432,7 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
             return d;
         })
 
-        self._groups = self._canvas.append('g')
+        self._groups = self._chartCanvas.append('g')
             .attr('class', 'arc-canvas')
             .selectAll('g')
             .data(groupsData)
@@ -392,24 +463,76 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
         /*
          * Render legend.
          */
-        var legendItems = self._canvas.append('g')
-            .attr('class', 'legend-canvas')
-            .selectAll('g.legend-item')
+        var strX = - self._outerRadius;
+        var strLength = 0;
+
+        self._legendCanvas = self._canvas.append('g')
+            .attr('class', 'legend-canvas');
+
+        self._legendCanvas.selectAll('g.legend-item')
             .data(groupsData)
             .enter()
             .append('g')
-            .attr('class', 'legend-item');
-        self._legendRects = legendItems.append('rect')
-            .attr('width', 15)
-            .attr('height', 15)
-            .style('fill', function(d, i) {
-                return self._color[i];
-            });
-        self._legendText = legendItems.append('text')
-            .style('font-size', '12px')
-            .text(function(d, i) {
-                return d.key;
-            });
+            .attr('class', 'legend-item')
+            .each(function(d, i) {
+
+                var container = d3.select(this);
+
+                strX = strX + (i === 0 ? 2 : self._legend.groupPadding);
+                var rect = container.append('rect')
+                    .attr('width', 15)
+                    .attr('height', 15)
+                    .attr('x', function() {
+                        return strX;
+                    }).attr('y', function() {
+                        return self._legend.rowsNumber * 15 + 2 * self._legend.rowsNumber;
+                    }).style('fill', function() {
+                        return self._color[i];
+                    });
+
+                strLength += self._legend.groupPadding + 15;
+                strX = strX + self._legend.labelPadding + 15;
+
+                var text = container.append('text')
+                    .style('font-size', self._legend.fontSize + 'px')
+                    .attr('x', function() {
+                        return strX;
+                    }).attr('y', function() {
+                        return self._legend.rowsNumber * 15 + self._legend.fontSize + 2 * self._legend.rowsNumber;
+                    }).text(function() {
+                        return d.key;
+                    });
+
+                var strWidth = text.node().getBoundingClientRect().width
+                strLength += self._legend.labelPadding + strWidth;
+                strX = strX + strWidth;
+
+                if (strLength > self._outerDiameter) {
+
+                    self._legend.rowsNumber ++;
+
+                    strX = - self._outerRadius + 2;
+                    strLength = 0;
+
+                    rect.attr('x', function() {
+                            return strX;
+                        }).attr('y', function() {
+                            return self._legend.rowsNumber * 15 + 2 * self._legend.rowsNumber;
+                        });
+
+                    strLength += 2 + 15;
+                    strX = strX + self._legend.labelPadding + 15;
+
+                    text.attr('x', function() {
+                            return strX;
+                        }).attr('y', function() {
+                            return self._legend.rowsNumber * 15 + self._legend.fontSize + 2 * self._legend.rowsNumber;
+                        });
+
+                    strLength += self._legend.labelPadding + strWidth;
+                    strX = strX + strWidth;
+                }
+            })
         /*
          * Render tension controls.
          */
@@ -438,6 +561,7 @@ HierarchicalEdgeBundling.prototype.renderTo = function(selector) {
                     self._update();
                 }));
 
+        self._resize(undefined, true);
         self._update();
     });
 };
